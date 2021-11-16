@@ -24,5 +24,6 @@ typedef struct
 	int human_weight;
 	int english_weight;
 	int eval_weight;
+	int number_of_schools;
 } MATH_THREAD_params_t;
 #endif

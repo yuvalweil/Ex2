@@ -5,12 +5,13 @@
 #include <Windows.h> 
 #include "HardCodedDataForThread.h"
 #include <string.h>
+#include "HardCodedData.h"
 
 
 
 // Function Declarations
 
-void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, HANDLE hEvalFile, HANDLE hResultFile, Student students[], MATH_THREAD_params_t* p_thread_params);
+DWORD WINAPI calc_avg_for_school(LPVOID lpParam);
 HANDLE create_file_for_read(HANDLE hFile, char* fileName);
 int read_file_and_update_students(HANDLE hFile, struct Student* students, enum typeGrade type);
 int split_grades(char* buffer, struct Student* students, DWORD dwBytesToRead, enum typeGrade type);
@@ -24,11 +25,19 @@ void write_results_of_school(HANDLE hResultFile, Student* students, int num_of_s
 // Function description:
 
 
-void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, HANDLE hEvalFile,HANDLE hResultFile, Student students[], MATH_THREAD_params_t* p_thread_params)
+DWORD WINAPI calc_avg_for_school(LPVOID lpParam)
 {
+	MATH_THREAD_params_t* p_thread_params = NULL;
+	p_thread_params = (MATH_THREAD_params_t*)lpParam;
 	enum typeGrade type;
 	int num_of_students;
 	int full_length = 0;
+	HANDLE* hRealFile = NULL;
+	HANDLE* hHumanFile = NULL;
+	HANDLE* hEngFile = NULL;
+	HANDLE* hEvalFile = NULL;
+	HANDLE* hResultFile = NULL;
+	Student students[100]; //TODO calc num of students and alocate + free
 
 	int length = snprintf(NULL, 0, "%d", p_thread_params->school_num);
 	char* s_school_num = malloc(length + 1);
@@ -37,7 +46,7 @@ void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, H
 	type = 1;
 	full_length = strlen("./Real/Real") + length + strlen(".txt");
 	char* realFileName = (char*)malloc(full_length * (sizeof(char)));
-	strcpy(realFileName, "./Real/Real"); 
+	strcpy(realFileName, "./Real/Real");
 	strcat(realFileName, s_school_num);
 	strcat(realFileName, ".txt");
 	hRealFile = create_file_for_read(hRealFile, realFileName);
@@ -46,7 +55,7 @@ void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, H
 	type = 2;
 	full_length = strlen("./Human/Human") + length + strlen(".txt");
 	char* umanFileName = (char*)malloc(full_length * (sizeof(char)));
-	strcpy(umanFileName, "./Human/Human"); 
+	strcpy(umanFileName, "./Human/Human");
 	strcat(umanFileName, s_school_num);
 	strcat(umanFileName, ".txt");
 	hHumanFile = create_file_for_read(hHumanFile, umanFileName);
@@ -55,7 +64,7 @@ void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, H
 	type = 3;
 	full_length = strlen("./Eng/Eng") + length + strlen(".txt");
 	char* engFileName = (char*)malloc(full_length * (sizeof(char)));
-	strcpy(engFileName, "./Eng/Eng"); 
+	strcpy(engFileName, "./Eng/Eng");
 	strcat(engFileName, s_school_num);
 	strcat(engFileName, ".txt");
 	hEngFile = create_file_for_read(hEngFile, engFileName);
@@ -64,17 +73,17 @@ void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, H
 	type = 4;
 	full_length = strlen("./Eval/Eval") + length + strlen(".txt");
 	char* evalFileName = (char*)malloc(full_length * (sizeof(char)));
-	strcpy(evalFileName, "./Eval/Eval"); 
+	strcpy(evalFileName, "./Eval/Eval");
 	strcat(evalFileName, s_school_num);
 	strcat(evalFileName, ".txt");
 	hEvalFile = create_file_for_read(hEvalFile, evalFileName);
 	read_file_and_update_students(hEvalFile, students, type);
 
-	calc_avg_grade(students,num_of_students, p_thread_params);
+	calc_avg_grade(students, num_of_students, p_thread_params);
 
 	full_length = strlen("./Results/Results") + length + strlen(".txt");
 	char* resultFileName = (char*)malloc(full_length * (sizeof(char)));
-	strcpy(resultFileName, "./Results/Results"); 
+	strcpy(resultFileName, "./Results/Results");
 	strcat(resultFileName, s_school_num);
 	strcat(resultFileName, ".txt");
 	hResultFile = create_file_for_write(hResultFile, resultFileName);
@@ -86,6 +95,8 @@ void calc_avg_for_school(HANDLE hRealFile, HANDLE hHumanFile, HANDLE hEngFile, H
 	free(engFileName);
 	free(evalFileName);
 	free(resultFileName);
+
+	return AVERAGE_THREAD__CODE_SUCCESS;
 }
 
 HANDLE create_file_for_read(HANDLE hFile, char* fileName)
@@ -98,13 +109,13 @@ HANDLE create_file_for_read(HANDLE hFile, char* fileName)
 		OPEN_EXISTING,
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
-// Checks if we failed to open file
-		if (hFile == INVALID_HANDLE_VALUE)
-		{
-			printf("Failed to create or open file");
-			exit(1);
-		}
-		return hFile;
+	// Checks if we failed to open file
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+		printf("Failed to create or open file");
+		exit(1);
+	}
+	return hFile;
 }
 
 HANDLE create_file_for_write(HANDLE hFile, char* fileName)
@@ -126,7 +137,7 @@ HANDLE create_file_for_write(HANDLE hFile, char* fileName)
 	return hFile;
 }
 
-int read_file_and_update_students(HANDLE hFile,Student* students, enum typeGrade type)
+int read_file_and_update_students(HANDLE hFile, Student* students, enum typeGrade type)
 {
 	DWORD dwBytesRead;
 	LPDWORD lpFileSizeHigh = NULL;
@@ -136,7 +147,7 @@ int read_file_and_update_students(HANDLE hFile,Student* students, enum typeGrade
 		printf("Failed to get size of file");
 		exit(1);
 	}
-	char* buffer = (char*)malloc(sizeof(char) * dwBytesToRead); 
+	char* buffer = (char*)malloc(sizeof(char) * dwBytesToRead);
 	BOOL bFile = ReadFile(hFile,
 		(void*)buffer,
 		dwBytesToRead,
@@ -153,7 +164,7 @@ int read_file_and_update_students(HANDLE hFile,Student* students, enum typeGrade
 	return num_of_students;
 }
 
-int split_grades(char* buffer,Student* students, DWORD dwBytesToRead, enum typeGrade type)
+int split_grades(char* buffer, Student* students, DWORD dwBytesToRead, enum typeGrade type)
 {
 	char temp_grade[4]; //max 3 digits + '\0'
 	unsigned int i, j;
@@ -194,21 +205,21 @@ int split_grades(char* buffer,Student* students, DWORD dwBytesToRead, enum typeG
 void calc_avg_grade(Student* students, int num_of_students, MATH_THREAD_params_t* p_thread_params)
 {
 	int temp_avg_grade = 0;
-	for (int i = 0; i < num_of_students+1; i++)
+	for (int i = 0; i < num_of_students + 1; i++)
 	{
 		temp_avg_grade = students[i].real_grade * p_thread_params->real_weight;
 		temp_avg_grade += students[i].humen_grade * p_thread_params->human_weight;
 		temp_avg_grade += students[i].eng_grade * p_thread_params->english_weight;
 		temp_avg_grade += students[i].eval_grade * p_thread_params->eval_weight;
-		students[i].student_avg = temp_avg_grade/100;
+		students[i].student_avg = temp_avg_grade / 100;
 	}
 	return;
 }
 
-void write_results_of_school(HANDLE hResultFile,Student* students,int num_of_students)
+void write_results_of_school(HANDLE hResultFile, Student* students, int num_of_students)
 {
 	LPDWORD lpNumberOfBytesWritten;
-	for (int i = 0; i < num_of_students+1; i++)
+	for (int i = 0; i < num_of_students + 1; i++)
 	{
 		int length = snprintf(NULL, 0, "%d", students[i].student_avg);
 		char* temp_buffer = malloc(length + 2);
@@ -216,9 +227,9 @@ void write_results_of_school(HANDLE hResultFile,Student* students,int num_of_stu
 		strcat(temp_buffer, "\n");
 		BOOL bFile = WriteFile(hResultFile,
 			(void*)temp_buffer,
-			length+1,
+			length + 1,
 			&lpNumberOfBytesWritten,
-			NULL); 
+			NULL);
 		if (bFile == FALSE)
 		{
 			printf("Failed to write file");

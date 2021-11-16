@@ -1,7 +1,7 @@
 #ifndef HARD_CODED_DATA
 #define HARD_CODED_DATA
 
-#define NUM_THREADS 10
+#define MAX_NUM_THREADS 10
 #define ERROR_CODE -1
 #define SUCCESS_CODE 0
 
